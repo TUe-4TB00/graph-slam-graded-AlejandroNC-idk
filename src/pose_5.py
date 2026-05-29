@@ -75,32 +75,30 @@ def minimize_marginals(graph, initial_estimate, pose_options):
     return best_pose, best_landmark, sum_of_marginals
 
 def minimize_errors(graph, initial_estimate, pose_options):
-    best_pose = "a"      
-    best_landmark = 1    
+    best_pose = "a"
+    best_landmark = 1
     sum_of_errors = float('inf')
-    
+
     for pose_key, pose_val in pose_options.items():
         for landmark_idx in [1, 2]:
             temp_graph = gtsam.NonlinearFactorGraph()
             temp_graph.push_back(graph)
             temp_initial = gtsam.Values(initial_estimate)
-            
+
             temp_graph, temp_initial = add_pose(temp_graph, temp_initial, pose_val)
             temp_result = optimize(temp_graph, temp_initial)
-            
+
             temp_graph = add_landmark_measurement(temp_graph, temp_result, pose_val, landmark_idx)
-            temp_result = optimize(temp_graph, temp_initial) 
-            
-            marginals = gtsam.Marginals(temp_graph, temp_result)
+            temp_result_final = optimize(temp_graph, temp_initial)
             
             list_of_errors = [
-                marginals.marginalCovariance(X(1)).sum(),
-                marginals.marginalCovariance(X(2)).sum(),
-                marginals.marginalCovariance(X(3)).sum()
+                np.linalg.norm(temp_graph.at(0).unwhitenedError(temp_result_final)),
+                np.linalg.norm(temp_graph.at(1).unwhitenedError(temp_result_final)),
+                np.linalg.norm(temp_graph.at(2).unwhitenedError(temp_result_final)),
             ]
-            
+
             current_sum_of_errors = sum(list_of_errors)
-            
+
             if current_sum_of_errors < sum_of_errors:
                 sum_of_errors = current_sum_of_errors
                 best_pose = pose_key
